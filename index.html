@@ -85,6 +85,7 @@ input[type=time]::-webkit-calendar-picker-indicator,input[type=date]::-webkit-ca
 #lgn{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
 .lgc{width:100%;max-width:360px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:24px}
 @media(max-width:480px){.hero .bdg{width:58px;height:58px;right:12px}.hero h1{font-size:20px}.hero .in small{font-size:12px}.av{width:66px;height:66px}}
+#lgl .logo{width:72px;height:72px}
 </style>
 </head>
 <body>
@@ -97,7 +98,7 @@ input[type=time]::-webkit-calendar-picker-indicator,input[type=date]::-webkit-ca
 <input type="file" id="file" accept="image/*" hidden>
 <main id="m"></main>
 <div id="alr"></div>
-<div id="lgn"><div class="lgc"><div id="lgl" style="width:72px;margin:0 auto 10px"></div><h2 style="text-align:center;margin:0 0 4px">Gustavo</h2><p class="emp" style="text-align:center;margin:0 0 16px">Rotina no Confiança</p>
+<div id="lgn"><div class="lgc"><div id="lgl" style="display:flex;justify-content:center;margin:0 0 10px"></div><h2 style="text-align:center;margin:0 0 4px">Gustavo</h2><p class="emp" style="text-align:center;margin:0 0 16px">Rotina no Confiança</p>
 <div id="lgload" class="emp" style="text-align:center">Carregando…</div>
 <div id="lgform" style="display:none"><label class="l">E-mail</label><input id="lgmail" type="email" autocomplete="username" style="margin-bottom:10px"><label class="l">Senha</label><input id="lgpass" type="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')entrar()">
 <p id="lgerr" style="color:var(--red);font-size:14px;min-height:18px;margin:8px 0"></p><button class="b" id="lgbtn" style="width:100%" onclick="entrar()">Entrar</button></div></div></div>
