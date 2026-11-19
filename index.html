@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Rotina">
+<script src="push-config.js"></script>
 <title>Gustavo · Rotina no Confiança</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%231c3fd6' stroke='white' stroke-width='3'/%3E%3Cpath d='M44 24a14 14 0 1 0 2 12H33v-5h14' fill='none' stroke='white' stroke-width='5.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M40 9c7 0 11 4 11 10-7 0-11-4-11-10z' fill='%234ade80'/%3E%3C/svg%3E">
 <style>
@@ -110,6 +111,21 @@ let v="hoje",sd=null,cm=null,ck="rot",sa=null;
 try{const r=localStorage.getItem("gustavo");if(r)S=Object.assign(S,JSON.parse(r))}catch(e){}
 const lsave=()=>{try{localStorage.setItem("gustavo",JSON.stringify(S))}catch(e){}};
 let UID=null,pT=null,unsub=null;
+const pok=()=>{try{return localStorage.getItem("push-ok")}catch(_){return""}};
+async function ativarPush(auto){
+  const say=m=>{if(!auto)alert(m)};
+  try{
+    if(!UID)return say("Entre na sua conta primeiro.");
+    const k=window.VAPID_KEY;if(!k||/COLE/.test(k))return say("Falta colar a chave VAPID no arquivo push-config.js do GitHub.");
+    if(!("Notification" in window)||!("serviceWorker" in navigator))return say("Este navegador n\u00e3o recebe notifica\u00e7\u00f5es. No iPhone, abra o app pelo \u00edcone da Tela de In\u00edcio.");
+    if(Notification.permission==="default"&&!auto)await Notification.requestPermission();
+    if(Notification.permission!=="granted")return say("As notifica\u00e7\u00f5es est\u00e3o bloqueadas. Libere nas configura\u00e7\u00f5es do navegador para este site.");
+    const tk=await FB.pushToken(k);if(!tk)throw new Error("sem token");
+    await FB.setDoc(P("push"),{tz:Intl.DateTimeFormat().resolvedOptions().timeZone,tokens:{[tk]:{t:Date.now(),ua:navigator.userAgent.slice(0,80)}}},true);
+    try{localStorage.setItem("push-ok","1")}catch(_){}
+    say("Pronto! Notifica\u00e7\u00f5es ativadas neste aparelho.");R();
+  }catch(e){say("N\u00e3o foi poss\u00edvel ativar as notifica\u00e7\u00f5es: "+(e&&e.message||e))}
+}
 const P=n=>["users",UID,"data",n];
 const setSyn=x=>{const e=document.getElementById("syn");if(e)e.textContent=x};
 const sv=()=>{S.t=Date.now();lsave();if(UID){setSyn("\u2601 Salvando\u2026");clearTimeout(pT);pT=setTimeout(push,700)}};
@@ -126,6 +142,7 @@ async function startSync(){
     if(unsub)unsub();
     unsub=FB.listen(P("app"),q=>{if(!q.exists())return;const x=q.data();if(x&&x.t>(S.t||0))apply(x)},()=>setSyn("\u26a0 Sem conex\u00e3o"));
     setSyn("\u2601 Sincronizado");
+    if("Notification" in window&&Notification.permission==="granted")ativarPush(true);
   }catch(e){setSyn("\u26a0 Sem conex\u00e3o (salvo neste aparelho)")}
 }
 window.onUser=u=>{const L=$("lgn");$("lgl").innerHTML=LOGO;
@@ -158,7 +175,7 @@ let FIRED={};try{FIRED=JSON.parse(localStorage.getItem("gustavo-fired")||"{}")}c
 function pedir(){try{Notification.requestPermission().then(()=>R())}catch(_){}}
 function alerta(t,m){$("alr").innerHTML=`<div class="alr"><div style="flex:1"><b>${E(t)}</b><span>${E(m)}</span></div><button onclick="this.parentNode.remove()">✕</button></div>`+$("alr").innerHTML;
  try{const c=new (window.AudioContext||window.webkitAudioContext)();[0,.3,.6].forEach(x=>{const o=c.createOscillator(),g=c.createGain();o.frequency.value=880;g.gain.value=.15;o.connect(g);g.connect(c.destination);o.start(c.currentTime+x);o.stop(c.currentTime+x+.18)})}catch(_){}
- try{if(Notification.permission==="granted")new Notification(t,{body:m})}catch(_){}}
+ try{if(Notification.permission==="granted"&&!pok())new Notification(t,{body:m})}catch(_){}}
 function vigia(){const now=Date.now();for(const off of [0,1]){const dd=new Date();dd.setDate(dd.getDate()+off);const d=iso(dd);
  for(const e of evs(d)){if(!e.h||!(e.al>=0))continue;const at=new Date(d+"T"+e.h).getTime(),tr=at-e.al*60000,k=d+"|"+e.id;
   if(now>=tr&&now<at+30*60000&&!FIRED[k]){FIRED[k]=1;try{localStorage.setItem("gustavo-fired",JSON.stringify(FIRED))}catch(_){}
@@ -191,6 +208,7 @@ function hoje(){
   const dt=new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"});
   const pend=S.tasks.filter(t=>!t.ok&&(!t.d||t.d<=T));
   return `<h2 style="text-transform:capitalize">${dt}</h2>
+  ${pok()?"":`<div class="card"><h3>Notificações</h3><p class="emp">Receba o aviso do compromisso neste aparelho, mesmo com o app fechado.</p><button class="b" onclick="ativarPush()">🔔 Ativar neste aparelho</button></div>`}
   <div class="card"><h3>Agenda de hoje</h3>${evHtml(evs(T),T)}</div>
   <div class="card"><h3>Rotina · ${dn().length}/${S.rot.length}</h3>${S.rot.map((t,i)=>`<label class="ck ${dn().includes(i)?"fz":""}"><input type="checkbox" ${dn().includes(i)?"checked":""} onchange="tgR(${i})"><span>${E(t)}</span></label>`).join("")||`<div class="emp">Sem rotina. Adicione em Checklist.</div>`}</div>
   <div class="card"><h3>Tarefas pendentes</h3>${pend.map(t=>`<label class="ck"><input type="checkbox" onchange="tgT('${t.id}')"><span>${E(t.n)}</span>${t.d?`<span class="tag" style="flex:none">${br(t.d)}</span>`:""}</label>`).join("")||`<div class="emp">Tudo em dia 🎉</div>`}</div>`}
@@ -205,7 +223,7 @@ function cal(){
   return `<div class="card"><div class="cal-h"><b>${mes}</b><div><button class="b o" onclick="cm--;R()">‹</button><button class="b o" onclick="cm=new Date().getMonth()+new Date().getFullYear()*12;sd=T;R()">Hoje</button><button class="b o" onclick="cm++;R()">›</button></div></div>
   <div class="dw">${"DSTQQSS".split("").map(c=>`<span>${c}</span>`).join("")}</div><div class="days">${cells}</div></div>
   <div class="card"><h3>${new Date(sd+"T12:00").toLocaleDateString("pt-BR",{weekday:"long",day:"numeric",month:"long"})}</h3>${evHtml(evs(sd),sd)}</div>
-  <div class="card"><h3>Novo compromisso</h3>${"Notification" in window&&Notification.permission==="default"?`<p><button class="b o" onclick="pedir()">🔔 Ativar avisos neste aparelho</button></p>`:""}<div class="g"><div class="f"><input id="en" placeholder="Título (ex.: Avaliação Sub-17)"></div>
+  <div class="card"><h3>Novo compromisso</h3>${pok()&&"Notification" in window&&Notification.permission==="granted"?`<p class="emp">🔔 Notificações ativas neste aparelho</p>`:`<p><button class="b o" onclick="ativarPush()">🔔 Ativar notificações neste aparelho</button></p>`}<div class="g"><div class="f"><input id="en" placeholder="Título (ex.: Avaliação Sub-17)"></div>
   <div><input type="time" id="eh"></div><div><select id="et">${Object.keys(CORES).map(c=>`<option>${c}</option>`).join("")}</select></div>
   <div class="f"><select id="ea"><option value="">Atleta (opcional)</option>${S.ath.map(a=>`<option value="${a.id}">${E(a.nome)}</option>`).join("")}</select></div></div>
   <p><label class="l">⏰ Avisar antes (precisa de horário)</label><select id="eal"><option value="120">2 horas antes</option><option value="60">1 hora antes</option><option value="30">30 minutos antes</option><option value="0">No horário</option><option value="1440">1 dia antes</option><option value="-1">Não avisar</option></select></p>
@@ -255,7 +273,7 @@ import{initializeFirestore,persistentLocalCache,persistentMultipleTabManager,doc
 const app=initializeApp({apiKey:"AIzaSyAps5K-_i8-HNnTCz9vx_vScY1h-GsOUQU",authDomain:"gustavo-rotina.firebaseapp.com",projectId:"gustavo-rotina",storageBucket:"gustavo-rotina.firebasestorage.app",messagingSenderId:"265370488414",appId:"1:265370488414:web:cf553263d7ced82002eecf"});
 const auth=getAuth(app);
 const fs=initializeFirestore(app,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})});
-window.FB={login:(e,p)=>signInWithEmailAndPassword(auth,e,p),logout:()=>signOut(auth),getDoc:a=>getDoc(doc(fs,...a)),setDoc:(a,d)=>setDoc(doc(fs,...a),d),listen:(a,ok,er)=>onSnapshot(doc(fs,...a),ok,er)};
+window.FB={login:(e,p)=>signInWithEmailAndPassword(auth,e,p),logout:()=>signOut(auth),getDoc:a=>getDoc(doc(fs,...a)),setDoc:(a,d,m)=>m?setDoc(doc(fs,...a),d,{merge:true}):setDoc(doc(fs,...a),d),pushToken:async v=>{const M=await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-messaging.js");if(!(await M.isSupported()))throw new Error("Este aparelho não suporta notificações (no iPhone, instale na Tela de Início).");const reg=await navigator.serviceWorker.ready;return M.getToken(M.getMessaging(app),{vapidKey:v,serviceWorkerRegistration:reg})},listen:(a,ok,er)=>onSnapshot(doc(fs,...a),ok,er)};
 onAuthStateChanged(auth,u=>window.onUser(u));
 </script>
 </body>
